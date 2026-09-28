@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Voice Detection</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #4e73df, #1cc88a);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            width: 400px;
+            text-align: center;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        input[type="file"] {
+            margin: 15px 0;
+        }
+
+        button {
+            background-color: #4e73df;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background-color: #2e59d9;
+        }
+
+        .record-btn {
+            background-color: #e74a3b;
+        }
+
+        .record-btn:hover {
+            background-color: #c0392b;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .human {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .ai {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        hr {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎤 AI Voice Detection</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="audio" accept="audio/*" required>
+        <br>
+        <button type="submit">Predict</button>
+    </form>
+
+    <hr>
+
+    <h3>Record Audio</h3>
+    <button class="record-btn" onclick="startRecording()">Start</button>
+    <button onclick="stopRecording()">Stop</button>
+
+    {% if result %}
+        <div class="result {% if result == 'AI Voice' %}ai{% else %}human{% endif %}">
+            Result: {{ result }}
+        </div>
+    {% endif %}
+</div>
+
+<script>
+let mediaRecorder;
+let audioChunks = [];
+
+function startRecording() {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            mediaRecorder = new MediaRecorder(stream);
+            mediaRecorder.start();
+
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+        });
+}
+
+function stopRecording() {
+    mediaRecorder.stop();
+
+    mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append("audio", audioBlob, "recorded.webm");
+
+        fetch("/", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.open();
+            document.write(html);
+            document.close();
+        });
+
+        audioChunks = [];
+    };
+}
+</script>
+
+</body>
+</html>
